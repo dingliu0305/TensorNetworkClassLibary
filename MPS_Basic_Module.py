@@ -26,7 +26,7 @@ def left2right_decompose_tensor(tensor, way):
         tensor, v = np.linalg.qr(tensor)
     s2 = tensor.shape
     tensor = tensor[:, :s2[1]].reshape(s1[0], s1[1], s2[1])
-    return tensor, v
+    return tensor, v, s2[1]
 
 
 def right2left_decompose_tensor(tensor, way):
@@ -43,7 +43,7 @@ def right2left_decompose_tensor(tensor, way):
         tensor, v = np.linalg.qr(tensor.T)
     s2 = np.shape(tensor)
     tensor = tensor[:, :s2[1]].T.reshape(s2[1], s1[1], s1[2])
-    return tensor, v
+    return tensor, v, s2[1]
 
 
 def absorb_matrix2tensor(tensor, mat, bond):
@@ -62,18 +62,47 @@ def absorb_matrix2tensor(tensor, mat, bond):
 
 def bound_vec_operator_left2right(tensor, op=np.zeros(0), v=np.zeros(0), normalize=1):
     s = tensor.size
-    if op.size != 0:
+    if op.size != 0:  # deal with the operator
         tensor1 = tensor.transpose(0, 2, 1).reshape(s[0]*s[2], s[1]).dot(op)
-        tensor1.reshape(s[0], s[2], s[1]).transpose(0, 2, 1)
-    else:
+        tensor1 = tensor1.reshape(s[0], s[2], s[1]).transpose(0, 2, 1)
+    else:  # no operator
         tensor1 = tensor
-    if v.size == 0:
+    if v.size == 0:  # no input boundary vector v
         tensor = tensor.reshape(s[0]*s[1], s[2]).conj()
         tensor1 = tensor1.reshape(s[0]*s[1], s[2])
         v1 = tensor.T.dot(tensor1)
-    else:
+    else:  # there is an input boundary vector v
         tensor1 = v.dot(tensor1.reshape(s[0], s[1]*s[2]))
         v1 = tensor.conj().reshape(s[0]*s[1], s[2]).T.dot(tensor1.reshape(s[0]*s[1], s[2]))
     if normalize:
         v1 = v1/np.linalg.norm(v1.reshape(s[0]*s[1]*s[2], 1))
     return v1
+
+
+def bound_vec_operator_right2left(tensor, op=np.zeros(0), v=np.zeros(0), normalize=1):
+    s = tensor.size
+    if op.size != 0:  # deal with the operator
+        tensor1 = tensor.transpose(0, 2, 1).reshape(s[0]*s[2], s[1]).dot(op)
+        tensor1 = tensor1.reshape(s[0], s[2], s[1]).transpose(0, 2, 1)
+    else:  # no operator
+        tensor1 = tensor
+    if v.size == 0:  # no input boundary vector v
+        tensor = tensor.reshape(s[0], s[1]*s[2]).conj()
+        tensor1 = tensor1.reshape(s[0], s[1]*s[2])
+        v1 = tensor.dot(tensor1.T)
+    else:  # there is an input boundary vector v
+        tensor = tensor.reshape(s[0]*s[1], s[2]).conj().dot(v)
+        v1 = tensor.reshape(s[0], s[1]*s[2]).dot(tensor1.reshape(s[0], s[1]*s[2]).T)
+    if normalize:
+        v1 = v1/np.linalg.norm(v1.reshape(s[0]*s[1]*s[2], 1))
+    return v1
+
+
+def transfer_matrix_mps(tensor):
+    s = tensor.size
+    tmp = tensor.transpose(0, 2, 1).reshape(s[0]*s[2], s[1])
+    tm = tmp.conj().dot(tmp.T).reshape(s[0], s[2], s[0], s[2])
+    tm = tm.transpose(0, 2, 1, 3).reshape(s[0]*s[0], s[2]*s[2])
+    return tm
+
+
