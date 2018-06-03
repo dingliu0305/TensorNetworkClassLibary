@@ -22,7 +22,7 @@ para['break_tol'] = 1e-10  # tolerance for breaking the loop
 
 # Initialize MPS
 A = Mob(para['l'], para['d'], para['chi'])
-A.orthogonalize_mps(para['l'],0)
+A.orthogonalize_mps(para['l'], 0)
 
 # Prepare Hamiltonian
 hamilt = Hm.hamiltonian_heisenberg(para['jx'], para['jy'], para['jz'], para['hx'], para['hz'])

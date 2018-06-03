@@ -1,4 +1,4 @@
-import MPS_Basic_Module as Mm
+import Tensor_Basic_Module as Mm
 import numpy as np
 
 
@@ -16,11 +16,11 @@ class MpsOpenBoundaryClass:
         if l0 < l1:  # Orthogonalize MPS from left to rigth
             for n in range(l0, l1):
                 self.mps[n], mat, self.virtual_dim[n] = Mm.left2right_decompose_tensor(self.mps[n], self.decomp_way)
-                self.mps[n+1] = Mm.absorb_matrix2tensor(self.mps[n+1], mat, 1)
+                self.mps[n+1] = Mm.absorb_matrix2tensor(self.mps[n+1], mat, 0)
         elif l0 > l1:  # Orthogonalize MPS from right to left
             for n in range(l0, l1, -1):
                 self.mps[n], mat, self.virtual_dim[n-1] = Mm.right2left_decompose_tensor(self.mps[n], self.decomp_way)
-                self.mps[n - 1] = Mm.absorb_matrix2tensor(self.mps[n - 1], mat, 3)
+                self.mps[n - 1] = Mm.absorb_matrix2tensor(self.mps[n - 1], mat, 2)
         self.center = l1
 
     # transfer the MPS into the central orthogonal form with the center lc
@@ -91,9 +91,14 @@ class MpsOpenBoundaryClass:
         # function handle to put in eigs, to update the p-th tensor
         # index[n, 0]-th operator is at the index[n, 2]-th site
         # index[n, 1]-th operator is at the index[n, 3]-th site
-        nh = index.shape[1]
+        nh = index.shape[1]  # number of two-body Hamiltonians
+        tensor = self.mps[p]
         for n in range(0, nh):
             op = [operators[index[n, 0]], operators[index[n,1]]]
             v_left, v_middle, v_right = self.environment_s1_s2(p, op, index[n, 2:3])
+            tensor -= Mm.absorb_matrices2tensor(tensor, [v_left, v_middle, v_right])
+        return tensor
+
+
 
 
