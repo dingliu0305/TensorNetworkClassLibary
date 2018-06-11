@@ -1,12 +1,27 @@
 import Tensor_Basic_Module as T_module
 import numpy as np
-from Basic_Functions_SJR import empty_list, trace_stack, sort_list, print_error
+from Basic_Functions_SJR import empty_list, trace_stack, sort_list, print_error, print_sep, \
+    print_options, print_dict, info_contact
 from termcolor import colored, cprint
 
 
 class MpsOpenBoundaryClass:
-
-    def __init__(self, length, d, chi, way='svd', ini_way='r', debug=0):
+    """ Create an open-boundary MPS
+    Example: create an MPS with 8 sites
+        >>> length = 8  # number of sites/tensors
+        >>> d = 2  # physical bond dimension
+        >>> chi = 10  # virtual bond dimension
+        >>> a = MpsOpenBoundaryClass(length, d, chi, way='svd', ini_way='r', debug=False)
+    * Other inputs:
+        way: 'svd' (default) or 'qr'. When decomposing the tensors, use SVD or QR decomposition
+        ini_way: 'r' or 'q'. When initializing the MPS, use numpy.random.randn or numpy.ones
+        debug: True or False. Whether or not (default) in the debug mode.
+    For some general information, use self.print_general_info()
+        >>> a.print_general_info()
+    The help documentation for the member functions are to be added
+    """
+    def __init__(self, length, d, chi, way='svd', ini_way='r', debug=False):
+        self.version = '2018-06-1'
         self.phys_dim = d
         self.decomp_way = way  # 'svd' or 'qr'
         self.length = length
@@ -24,7 +39,33 @@ class MpsOpenBoundaryClass:
         self.virtual_dim[-1] = 1
         self._debug = debug  # if in debug mode
 
+    def print_general_info(self):
+        print_sep('DMRG & MPS Documentation (%s)' % self.version, style='#')
+        print('Install the following modules/libs before using: ')
+        print_options(['numpy', 'scipy', 'matplotlib'], welcome='\t', style_sep='.', end='\n\t', color='magenta')
+        print_sep('For using EasyStartDMRG (v2018.06-1)')
+        print('* To use EasyStartDMRG, you only need to know three things:')
+        print_options(['What you are simulating (e.g., Heisenber model, entanglement, ect.)', 'How to run a Python code',
+                       'English'], welcome='\t', style_sep='.', end='\n\t')
+        cprint('\t* It is ok if you may not know how DMRG works')
+        print('* Steps to use EasyStartDMRG: ')
+        print_options(['Run \'EasyStartDMRG\'', 'Input the parameters by following the instructions',
+                       'Choose the quantities you are interested in'], welcome='\t', style_sep='.', end='\n\t',)
+        print('Some notes:')
+        print_options(['Your parameters are saved in \'.\\para_dmrg\_para.pr\'',
+                       'To read *.pr, use function \'load_pr\' in \'Basic_functions_SJR.py\'',
+                       'The results including the MPS will be save in \'.\\data_dmrg\''
+                       ], welcome='\t', style_sep='.', end='\n\t',)
+        print_sep('Contact Information')
+        print_dict(info_contact(), ['name', 'affiliation', 'email'])
+
     def report_yourself(self):
+        """
+        Print some relevant information of the current MPS
+        Example:
+            >>> a = MpsOpenBoundaryClass(8, 2, 4)
+            >>> a.report_yourself()
+        """
         print('center: ' + str(self.center))
         print('orthogonality:' + str(self.orthogonality.T))
         print('virtual bond dimensions: ' + str(self.virtual_dim))
@@ -33,8 +74,13 @@ class MpsOpenBoundaryClass:
         for n in range(0, self.length-1):
             print('ent[%d] = ' % n + str(self.ent[n]))
 
-    # Orthogonalize the MPS from the l0-th to l1-th site (l0<l1)
     def orthogonalize_mps(self, l0, l1):
+        """
+        Orthogonalization of the MPS from l0-th to l1-th tensors. Note that from l0-th to (l1-1)-th, the tensor will
+        be left-to-right orthogonal (l0<l1) or right-to-left orthogonal (l0>l1)
+        :param l0: starting pointing of the orthogonalization
+        :param l1: ending pointing of the orthogonalization
+        """
         if l0 < l1:  # Orthogonalize MPS from left to rigth
             for n in range(l0, l1):
                 self.mps[n], mat, self.virtual_dim[n+1], lm = \
@@ -56,11 +102,21 @@ class MpsOpenBoundaryClass:
 
     # transfer the MPS into the central orthogonal form with the center lc
     def central_orthogonalization(self, lc, l0=0, l1=-1):
-        # NOTE: recommend to use correct_orthogonal_center in the code
+        """
+        Transform the MPS into central orthogonal form, with lc the center. Note you can specify the starting
+        and ending point of the orthogonalization process
+        :param lc: new center
+        :param l0: starting point (0 as default)
+        :param l1: ending point (self.length-1 as default)
+        Warning: * if the MPS is not central orthogonal, this function may not transform it into a orthogonal form
+                 * To central-orthogonalize the MPS or change the center, recommend to use correct_orthogonal_center
+        Example:
+        """
         if l1 == -1:
             l1 = self.length-1
         self.orthogonalize_mps(l0, lc)
         self.orthogonalize_mps(l1, lc)
+        self.center = lc
 
     # move the orthogonal center at p
     def correct_orthogonal_center(self, p=-1):
@@ -219,7 +275,7 @@ class MpsOpenBoundaryClass:
         _way = self.decomp_way
         _center = self.center
         self.decomp_way = 'svd'
-        if if_fast:
+        if if_fast and _center > -0.5:
             p0 = self.length - 1
             p1 = 0
             for n in range(0, self.length - 1):
@@ -227,13 +283,13 @@ class MpsOpenBoundaryClass:
                     p0 = min(p0, n)
                     p1 = max(p1, n)
             self.correct_orthogonal_center(p0)
-            if _center > -0.5:
-                self.correct_orthogonal_center(p1+1)
+            self.correct_orthogonal_center(p1+1)
             self.correct_orthogonal_center(_center)
         else:
             self.correct_orthogonal_center(0)
             self.correct_orthogonal_center(self.length-1)
-            self.correct_orthogonal_center(_center)
+            if _center > 0:
+                self.correct_orthogonal_center(_center)
         self.decomp_way = _way
 
     def calculate_entanglement_entropy(self):
@@ -409,10 +465,10 @@ class MpsOpenBoundaryClass:
         is_error = False
         for n in range(1, self.length):
             if self.virtual_dim[n] != self.mps[n].shape[0] or self.virtual_dim[n] != self.mps[n-1].shape[2]:
-                cprint('VirBondDimError: inconsistent dimension detected for the %d-th virtual bond' % n, 'magenta')
+                cprint('BondDimError: inconsistent dimension detected for the %d-th virtual bond' % n, 'magenta')
                 is_error = True
         if is_error:
-            trace_stack()
+            trace_stack(2)
 
     def check_mps_norm1(self, if_print=False):
         # check if the MPS is norm-1

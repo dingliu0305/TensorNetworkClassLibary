@@ -10,11 +10,35 @@ import matplotlib.pyplot as mp
 from termcolor import cprint, colored
 
 
+def info_contact():
+    """Return the information of the contact"""
+    info = dict()
+    info['name'] = 'S.J. Ran'
+    info['email'] = 'ranshiju10@mail.s ucas.ac.cn'
+    info['affiliation'] = 'ICFO – The Institute of Photonic Sciences'
+    return info
+
+
 def save_pr(path, file, data, names):
-    # save all data in a dict
-    # use the extension .pr (short for 'pickle-ran')
+    """
+    Save the data as a dict in a file located in the path
+    :param path: the location of the saved file
+    :param file: the name of the file
+    :param data: the data to be saved
+    :param names: the names of the data
+    Notes: 1. Conventionally, use the suffix \'.pr\'. 2. If the folder does not exist, system will
+    automatically create one. 3. use \'load_pr\' to load a .pr file
+    Example:
+    >>> x = 1
+    >>> y = 'good'
+    >>> save_pr('.\\test', 'ok.pr', [x, y], ['name1', 'name2'])
+      You have a file '.\\test\\ok.pr'
+    >>> z = load_pr('.\\test\\ok.pr')
+      z = {'name1': 1, 'name2': 'good'}
+      type(z) is dict
+    """
     mkdir(path)
-    s = open(path + file, 'wb')
+    s = open(os.path.join(path, file), 'wb')
     tmp = dict()
     for i in range(0, len(names)):
         tmp[names[i]] = data[i]
@@ -30,11 +54,14 @@ def load_pr(path_file, names=None):
             s.close()
             return data
         else:
-            nn = len(names)
-            data = list(range(0, nn))
             tmp = pickle.load(s)
-            for i in range(0, nn):
-                data[i] = tmp[names[i]]
+            if type(names) is str:
+                data = tmp[names]
+            elif type(names) is list or type(names) is tuple:
+                nn = len(names)
+                data = list(range(0, nn))
+                for i in range(0, nn):
+                    data[i] = tmp[names[i]]
             s.close()
             return tuple(data)
     else:
@@ -95,6 +122,23 @@ def trace_stack(level0=2):
         cprint('in ' + str(info[ns][1]) + ' at line ' + str(info[ns][2]), 'green')
 
 
+def print_dict(a, keys=None, welcome='', style_sep=': ', color='white', end='\n'):
+    express = welcome
+    if keys is None:
+        for n in a:
+            express += n + style_sep + str(a[n]) + end
+    else:
+        if type(keys) is str:
+            express += keys.capitalize() + style_sep + str(a[keys])
+        else:
+            for n in keys:
+                express += n.capitalize() + style_sep + str(a[n])
+                if n is not keys[-1]:
+                    express += end
+    print(express, color)
+    return express
+
+
 def print_error(string, if_trace_stack=True):
     cprint(string, 'magenta')
     if if_trace_stack:
@@ -114,10 +158,13 @@ def print_sep(info='', style='=', length=40, color='cyan'):
         cprint(mes, color)
 
 
-def print_options(options, start=1, welcome=''):
+def print_options(options, start=1, welcome='', style_sep=': ', end='    ', color='cyan'):
     message = welcome
-    for i in range(0, len(options)):
-        message += colored(' ' + str(i + start) + ': ' + options[i] + ',', 'cyan')
+    length = len(options)
+    for i in range(0, length):
+        message += colored(str(i + start) + style_sep + options[i], color)
+        if i < length-1:
+            message += end
     print(message)
 
 

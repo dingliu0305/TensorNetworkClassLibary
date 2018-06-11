@@ -105,7 +105,7 @@ if is_from_input:
               ', it means to add an interaction between the n1-th and n2-th sites')
         print('For example: ' + colored('1,2', 'cyan'))
         print('NOTE: input ' + colored('integers', 'cyan') + ' and make sure ' +
-              colored('0 < n1 < n2', 'cyan') + ', or the input will be ' + colored('invalid', 'magenta'))
+              colored('0 $\leq$ n1 < n2', 'cyan') + ', or the input will be ' + colored('invalid', 'magenta'))
         cprint('These numbers determine how the sites are located in the MPS, '
                'so optimize the numbering if possible', 'cyan')
         position_set = input_and_check_type_multiple_items(tuple, lambda values: values[0] < values[1],
