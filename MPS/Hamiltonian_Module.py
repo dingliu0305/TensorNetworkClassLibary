@@ -1,6 +1,5 @@
 # include the functions that relate to Hamiltonian's and gates
 import numpy as np
-from scipy.special import comb
 
 
 def spin_operators(spin):
@@ -34,6 +33,7 @@ def hamiltonian_heisenberg(jx, jy, jz, hx, hz):
 def interactions_full_connection_two_body(l):
     # return the interactions of the fully connected two-body Hamiltonian
     # interact: [first_site, second_site]
+    from scipy.special import comb
     ni = comb(l, 2)
     interact = np.zeros((int(ni), 2))
     n = 0
@@ -44,17 +44,44 @@ def interactions_full_connection_two_body(l):
     return interact, ni
 
 
-def interactions_nearest_neighbor_1d(l, bound_cond='open'):
+def positions_nearest_neighbor_1d(l, bound_cond='open'):
     # return the 1D Hamiltonian with nearest-neighbor interactions
     # index: [first_site, second_site]
     nh = l-1
-    index = np.zeros((nh + (bound_cond == 'open'), 2))
+    index = np.zeros((nh + (bound_cond == 'periodic'), 2))
     for n in range(0, nh):
         index[n, 0] = n
         index[n, 1] = n + 1
     if bound_cond == 'periodic':  # default: open boundary condition
-        index[nh + 1, 0] = 0
-        index[nh + 1, 1] = l - 1
+        index[nh, 0] = 0
+        index[nh, 1] = l - 1
+    return index
+
+
+def positions_nearest_neighbor_square(width, height, bound_cond='open'):
+    index = np.zeros((width-1, 2))
+    for i in range(0, width-1):  # interactions inside the first row
+        index[i, :] = [i, i+1]
+    for n in range(1, height):  # interactions inside the n-th row
+        tmp = np.zeros((width-1, 2))
+        for i in range(0, width-1):
+            tmp[i, :] = [n*width + i, n*width + i + 1]
+        index = np.vstack((index, tmp))
+    for n in range(0, width):
+        tmp = np.zeros((height-1, 2))
+        for i in range(0, height-1):
+            tmp[i, :] = [i*width + n, (i + 1)*width + n]
+        index = np.vstack((index, tmp))
+    if bound_cond == 'periodic':
+        tmp = np.zeros((height, 2))
+        for n in range(0, height):
+            tmp[n, :] = [n*width, (n + 1)*width - 1]
+        index = np.vstack((index, tmp))
+        tmp = np.zeros((width, 2))
+        for n in range(0, width):
+            tmp[n, :] = [n, (height - 1)*width + n]
+        index = np.vstack((index, tmp))
+        index = index.astype(int)
     return index
 
 
